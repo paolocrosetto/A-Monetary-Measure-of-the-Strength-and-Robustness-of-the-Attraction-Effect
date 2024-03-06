@@ -8,177 +8,39 @@
 
 ### needed libraries
 
-library(tidyverse) ### R dialect used in this file
+library(tidyverse)      ### R dialect used in this file
+     
+library(lme4)           ### Library to run the regression
+     
+library(grid)           ### Used to patch plots together 
+library(gridExtra)      ### Used to patch plots together 
 
-library(lme4)      ### Library to run the regression
-
-library(grid)      ### Used to patch plots together 
-library(gridExtra) ### Used to patch plots together 
-
-
-
-### needed functions
-
-## Summarizes data.
-## Gives count, mean, standard deviation, standard error of the mean, and confidence interval (default 95%).
-##   data: a data frame.
-##   measurevar: the name of a column that contains the variable to be summariezed
-##   groupvars: a vector containing names of columns that contain grouping variables
-##   na.rm: a boolean that indicates whether to ignore NA's
-##   conf.interval: the percent range of the confidence interval (default is 95%)
-summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
-                      conf.interval=.95, .drop=TRUE) {
-  require(plyr)
-  
-  # New version of length which can handle NA's: if na.rm==T, don't count them
-  length2 <- function (x, na.rm=FALSE) {
-    if (na.rm) sum(!is.na(x))
-    else       length(x)
-  }
-  
-  # This does the summary. For each group's data frame, return a vector with
-  # N, mean, and sd
-  datac <- ddply(data, groupvars, .drop=.drop,
-                 .fun = function(xx, col) {
-                   c(N    = length2(xx[[col]], na.rm=na.rm),
-                     mean = mean   (xx[[col]], na.rm=na.rm),
-                     sd   = sd     (xx[[col]], na.rm=na.rm)
-                   )
-                 },
-                 measurevar
-  )
-  
-  #   # Rename the "mean" column    
-  #   datac <- rename(datac, c("mean" = measurevar))
-  
-  datac$se <- datac$sd / sqrt(datac$N)  # Calculate standard error of the mean
-  
-  # Confidence interval multiplier for standard error
-  # Calculate t-statistic for confidence interval: 
-  # e.g., if conf.interval is .95, use .975 (above/below), and use df=N-1
-  ciMult <- qt(conf.interval/2 + .5, datac$N-1)
-  datac$ci <- datac$se * ciMult
-  
-  return(datac)
-}
+library(tinytable)      ### Used to format & output descriptive stats
+library(modelsummary)   ### Used to format & output regression tables
 
 
 #### 1. importing data #####
 df <- read_csv("Data/raw_data.csv")
 
 
-#### 2. Data cleaning #####
-
-source("Clean_data.R")
-
-
-### The original experiment was run on menus of 3 and 6 options. 
-### For this paper, we restrict attention to menus with 3 options
-
-df <- df[df$menulength==3,]
+#### 2. Needed functions #####
+source("Analysis/Functions.R")
 
 
-#generating a unique subject number
-df$subject <- df$session*100+df$subject
+#### 3. Data cleaning #####
 
-#df1 contains CS menus only
-df1 <- df[df$CS!=0,]
+source("Analysis/Clean_data.R")
 
-#### computing relative profit diff
-df1 <- df1 %>% mutate(profitpremium = 100*lpcsdiff/optprofit)
+#### Descriptive statistics ####
 
+source("Analysis/Payoffs.R")          ## mean payoffs and N subjects (DOES NOT REPLICATE SO FAR)
 
-#remove unused levels
-df1$breakdown<-factor(df1$breakdown)
+source("Analysis/Share_choice.R")     ## share of target, competitor, decoy chosen (TODO BETTER FORMAT)
 
-##### decoy profit
-df1$decoyprofit <- 60 - 100*df1$maxLCS
-df1$tdpdiff <- (df1$targetprofit - df1$decoyprofit)/df1$targetprofit
+#### 4. Figure 3 ####
 
-probt <- df1 %>% group_by(tdpdiff)%>%summarise(avgHPCSc = mean(HPCSchosen), avgLPCSc = mean(LPCSchosen))
+source("Analysis/Figure_3.R")
 
-
-########### plot 1 : menus by profit premium #######
-#plot
-png(file = "menus_payoffratio.png" , width=7, height=1.5, units = "in", res = 400)
-# svglite::svglite("design_premium_by_menu.svg", width=7, height=2)
-ggplot(df1, aes(x=profitpremium, y=1))+
-  geom_hline(aes(yintercept=1), linetype='dotted', color='light grey')+
-  geom_point(size=2.5, shape=124)+
-  geom_vline(aes(xintercept=0), linetype='dashed')+
-  ylim(c(0.95,1.05))+
-  xlab(label = "")+
-  theme_minimal()+
-  theme(axis.ticks = element_blank(), axis.text.y = element_blank())+
-  scale_x_continuous(breaks = c(-40, -30, -20, -10, 0, 10, 20, 30, 40,
-                                50,60,70,80),
-                     labels = c("-40%", "-30%", "-20%", "-10%", "0",
-                                "+10%", "+20%", "+30%", "+40%",
-                                "+50%","+60%","+70%","+80%"))+
-  coord_cartesian(xlim = c(-40,80))
-dev.off()
-
-png(file = "menus_payoffdiff.png" , width=7, height=1.5, units = "in", res = 400)
-# svglite::svglite("design_premium_by_menu.svg", width=7, height=2)
-ggplot(df1, aes(x=lpcsdiff, y=1))+
-  geom_hline(aes(yintercept=1), linetype='dotted', color='light grey')+
-  geom_point(size=2.5, shape=124)+
-  geom_vline(aes(xintercept=0), linetype='dashed')+
-  xlab(label = "")+
-  theme_minimal()+
-  theme(axis.ticks = element_blank(), axis.text.y = element_blank())+
-  scale_x_continuous(breaks = c(-10,-7.5,-5,-2.5,0,2.5,5,7.5,10),
-                     labels = c("-10€","-7.5€","-5€","-2.5€","0","2.5€", "5€","7.5€", "10€"))+
-  coord_cartesian(xlim = c(-10,10), ylim =c(0.95,1.05))
-dev.off()
-########### tables and summary statistics #######
-
-# more optimal choices when CS? yes
-oktable <- aggregate(ok~CS, data=df, FUN=function(x) c(n = length(x), mean =mean(x), st.dev = sd(x)))
-oktable
-okwt<-wilcox.test(df$ok[df$CS==0],df$ok[df$CS==2])
-okwt$p.value
-oktt<-t.test(df$ok[df$CS==0],df$ok[df$CS==2])
-oktt$p.value
-
-# faster when CS? yes
-timetable <- aggregate(time~CS, data=df, FUN=function(x) c(n = length(x), mean =mean(x), st.dev = sd(x)))
-timewt<-wilcox.test(df$time[df$CS==0],df$time[df$CS==2])
-timewt$p.value
-timett<-t.test(df$time[df$CS==0],df$time[df$CS==2])
-timett$p.value
-
-#in general, how frequently CS chosen? how frequently IS chosen? how frequently HPCS chosen?
-df1$cschoice <- NA
-df1$cschoice[df1$LPCSchosen==1]<-"Target"
-df1$cschoice[df1$HPCSchosen==1]<-"Decoy"
-df1$cschoice[df1$ISchosen==1]<-"Competitor"
-
-#changing order of factor levels
-df1$cschoice <- as.factor(df1$cschoice)
-df1$cschoice <- factor(df1$cschoice,levels(df1$cschoice)[c(3,2,1)])
-#table
-prop.table(table(df1$cschoice))
-
-#only the -29cent task
-prop.table(table(df1$cschoice[df1$lpcsdiff==-0.2999992]))
-
-#only the +20cent task
-prop.table(table(df1$cschoice[df1$lpcsdiff==0.2000036]))
-
-df1$lpd <- as.factor(round(df1$profitpremium,1))
-
-
-########### plot2: raw data, choice shares as a function of profit premium #######
-png("choice_shares_by_profitdiff.png", width=16, height=16, units="in", res=300)
-ggplot(df1, aes(x=lpd,fill=cschoice))+geom_bar(position='fill')+
-  geom_hline(aes(yintercept=0.5), linetype='dotted')+
-  theme_minimal()+
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
-  theme(legend.position = "bottom", legend.title = element_blank())+
-  scale_fill_grey()+
-  xlab("profit difference target - competitor")
-dev.off()
 
 
 ############# mixed logit models #################
