@@ -33,50 +33,17 @@ source("Analysis/Clean_data.R")
 
 #### Descriptive statistics ####
 
-source("Analysis/Payoffs.R")          ## mean payoffs and N subjects (DOES NOT REPLICATE SO FAR)
-
 source("Analysis/Share_choice.R")     ## share of target, competitor, decoy chosen (TODO BETTER FORMAT)
 
 #### 4. Figure 3 ####
 
 source("Analysis/Figure_3.R")
 
+#### 5. Regression: table, plots & tests #####
 
+source("Analysis/Regressions.R")
 
 ############# mixed logit models #################
-
-##saving data for stata mixlogit
-write.csv(df1, "df_to_Stata.csv")
-
-### let's try to control for the actual shapes
-df1 <- df1 %>% select(-menulength, -menulength2, -session, 
-                      -choice4, -choice5, -choice6,
-                      -fac, -year, -ma1, -ma2, -ma3, 
-                      -shtask1, -shtask2, -shtask3, 
-                      -shtask4, -pr1, -pr2, -pr3, -pr4,
-                      -demand, -motivation, -sh4, -sh5, -sh6,
-                      -up4, -up5, -up6, -ar4, -ar5, -ar6,
-                      -is4, -is5, -is6, - X_merge)
-
-df1$targetshape[df1$target == 1] <- df1$sh1[df1$target == 1]
-df1$targetshape[df1$target == 2] <- df1$sh2[df1$target == 2]
-df1$targetshape[df1$target == 3] <- df1$sh3[df1$target == 3]
-df1$targetshape <- factor(df1$targetshape)
-levels(df1$targetshape) <- c("cir","sq","tri")
-
-df1$competitorshape[df1$competitor == 1] <- df1$sh1[df1$competitor == 1]
-df1$competitorshape[df1$competitor == 2] <- df1$sh2[df1$competitor == 2]
-df1$competitorshape[df1$competitor == 3] <- df1$sh3[df1$competitor == 3]
-df1$competitorshape <- factor(df1$competitorshape)
-levels(df1$competitorshape) <- c("cir","sq","tri")
-
-#add dummies to df
-df1 <- df1 %>% mutate(targetcir = targetshape == "cir",
-                      targetsq = targetshape == "sq",
-                      targettri = targetshape == "tri",
-                      compcir = competitorshape == "cir",
-                      compsq = competitorshape == "sq",
-                      comptri = competitorshape == "tri")
 
 
 #####################################
@@ -84,16 +51,11 @@ df1 <- df1 %>% mutate(targetcir = targetshape == "cir",
 #####################################
 
 
-# modX <- glmer(LPCSchosen ~  profitpremium + (1+profitpremium| subject) + targetsq + targettri + targetcir + compsq + comptri + compcir, data = df1, 
-#               family = binomial, control = glmerControl(optimizer = "bobyqa"))
-# 
-# mod1 <- modX
-
-mod1 <- glmer(LPCSchosen ~  profitpremium + (1+profitpremium| subject), data = df1,
+mod1 <- glmer(LPCSchosen ~  profitpremium_perc + (1+profitpremium_perc | subject), data = df,
            family = binomial, control = glmerControl(optimizer = "bobyqa"))
 modA <- mod1
 # predict psychometric function
-df1$predictions <- predict(mod1, newdata = df1, type = "response", re.form = NULL, allow.new.levels = TRUE)
+df$predictions <- predict(mod1, newdata = df, type = "response", re.form = NULL, allow.new.levels = TRUE)
 
 #are the RE normally distributed?
 r_int<- ranef(mod1)$subject$`(Intercept)`
@@ -122,10 +84,11 @@ mod1_bias <- summarySE(mcoef, measurevar = "bias")
 meanlabel <- paste("mean = ", round(mod1_bias_mean,2), "%")
 
 ##find and plot intercept
-ade <- df1 %>% select(id, predictions, profitpremium) %>%
-  filter(profitpremium>-3 & profitpremium<3) %>%
+ade <- df %>% 
+  select(id, predictions, profitpremium_perc) %>%
+  filter(profitpremium_perc>-3 & profitpremium_perc<3) %>%
   group_by(id)%>%
-  spread(profitpremium, predictions)
+  spread(profitpremium_perc, predictions)
 names(ade) <- c("id","neg","pos")
 ade <- ade %>% mutate(ADE = neg+((pos-neg)/0.5)*0.3)
 
@@ -144,7 +107,7 @@ adetest <- t.test(ade$ADE, mu=0.5)
 adetest$p.value
 
 #main plot of predicted psychometric function by subject
-main <- ggplot(df1, aes(x = profitpremium, y = predictions)) +
+main <- ggplot(df, aes(x = profitpremium_perc, y = predictions)) +
   geom_smooth(level=0.9999, color="cornflowerblue")+
   theme_minimal()+
   geom_vline(xintercept=0, color='indianred')+geom_hline(aes(yintercept=0.5),color='indianred', linetype="dashed")+
