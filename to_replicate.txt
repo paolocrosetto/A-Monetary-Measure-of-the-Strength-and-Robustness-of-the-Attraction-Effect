@@ -13,19 +13,25 @@ WIthin text
 [NOT DONE] - duration (if recorded)
 [DONE: formatting issues] - proportion of target, competitor, decoy choices
 
-- tests of the average effect for the two measures
-- proportion of subjects affected by ADE
-- average amount of money left on the table
-- shapiro-wilk tests
+
 
 
 
 Figures and tables
 
 [DONE] Fig 3: ABSOLUTE PREMIUM
+
+
+ALL THIS COMES FROM THE REGRESSIONS
+
 Tab 1: 2 models
 Fig 5
 Fig 6
+
+- tests of the average effect for the two measures
+- proportion of subjects affected by ADE
+- average amount of money left on the table
+- shapiro-wilk tests
 
 
 
