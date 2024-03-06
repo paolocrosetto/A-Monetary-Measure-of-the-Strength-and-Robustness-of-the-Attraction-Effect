@@ -1,8 +1,16 @@
+####
+#### Replication package for Crosetto & Gaudeul, Economics Letters 2016
+####
+####
+#### Data cleaning
+
+#### This script
+
+## generates and saves Figure 3
 
 
 
-
-
+## plotting
 
 ggplot(df, aes(x=profitpremium_abs, y=1))+
   geom_hline(aes(yintercept=1), linetype='dotted', color='light grey')+
@@ -17,4 +25,5 @@ ggplot(df, aes(x=profitpremium_abs, y=1))+
         axis.text.y = element_blank(), 
         plot.background = element_rect(fill = "white", color = "white"))
 
+## saving
 ggsave("Figures/Figure_3.png" , width=7, height=1.5, units = "in", dpi = "retina")
