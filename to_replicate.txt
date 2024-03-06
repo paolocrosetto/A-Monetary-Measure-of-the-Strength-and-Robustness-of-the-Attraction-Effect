@@ -24,14 +24,29 @@ Figures and tables
 
 ALL THIS COMES FROM THE REGRESSIONS
 
-Tab 1: 2 models
-Fig 5
-Fig 6
+[DONE] Tab 1: 2 models
+[DONE] Fig 5
+[DONE] Fig 6
 
 - tests of the average effect for the two measures
 - proportion of subjects affected by ADE
 - average amount of money left on the table
 - shapiro-wilk tests
+
+
+
+# Compute bias
+monetaryADE <- coef(mod1)[[1]] %>% 
+  as_tibble() %>% 
+  mutate(measure = `(Intercept)`/profitpremium_perc, 
+         titlestring = "Distribution of the monetary measure of ADE")
+
+## mean of the effect
+monetaryADE_mean = -fixef(mod1)[[1]]/fixef(mod1)[[2]]
+
+#mean, sd and confint of the bias
+monetaryADE_stats <- summarySE(monetaryADE, measurevar = "measure")
+
 
 
 
