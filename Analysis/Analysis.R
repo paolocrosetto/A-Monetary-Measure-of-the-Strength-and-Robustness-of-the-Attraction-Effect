@@ -23,10 +23,6 @@ library(modelsummary)   ### Used to format & output regression tables
 df <- read_csv("Data/raw_data.csv")
 
 
-#### 2. Needed functions #####
-source("Analysis/Functions.R")
-
-
 #### 3. Data cleaning #####
 
 source("Analysis/Clean_data.R")

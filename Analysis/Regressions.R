@@ -66,7 +66,7 @@ ranef(mod2)$subject$`(Intercept)` %>%
 ##   - {model_run} is the regression results ran above
 ##   - {file_name} is the name of the file you want to generate
 
-estimation_plot_and_tests <- function(model_run, original_data, file_name) {
+estimation_plot_and_tests <- function(model_run, original_data, file_name, table_name) {
   
   ### generating the needed data ####
   
@@ -89,8 +89,10 @@ estimation_plot_and_tests <- function(model_run, original_data, file_name) {
   monetaryADE_mean = -fixef(model_run)[[1]]/fixef(model_run)[[2]]
   
   # mean, sd and confint of the indivdual biases
-  monetaryADE_stats <- summarySE(monetaryADE, measurevar = "measure")
-  
+  monetaryADE_stats <- monetaryADE %>% 
+    summarise(mean = mean(measure), 
+              sd = sd(measure), 
+              se = sd/sqrt(n()))
   
   ## 3: histogram of the frequency ADE measure
   
@@ -105,11 +107,44 @@ estimation_plot_and_tests <- function(model_run, original_data, file_name) {
     mutate(measure = neg+((pos-neg)/0.5)*0.3,
            titlestring = "Distribution of the frequency measure of ADE")
   
-  frequencyADE_stats = summarySE(frequencyADE, measurevar = "measure")
+  frequencyADE_stats = frequencyADE %>% ungroup() %>% 
+    summarise(mean = mean(measure, na.rm = T), 
+              sd = sd(measure, na.rm = T), 
+              se = sd/sqrt(n()))
   
-  ### TESTING ###
+  ### TABLE and TESTING ###
+  
+  monetaryADE_table <- monetaryADE_stats %>% 
+    mutate(mean = monetaryADE_mean,
+           stat = "Monetary ADE", 
+           test = t.test(monetaryADE$measure)$p.value) %>% 
+    select(stat, mean, sd, test)
+  
+  frequencyADE_table <- frequencyADE_stats %>% 
+    mutate(stat = "Frequency ADE", 
+           test = t.test(frequencyADE$measure)$p.value) %>% 
+    select(stat, mean, sd, test)
   
   
+  
+  # share of subjects affected 
+  affected_frequency <- frequencyADE %>% 
+    mutate(has_effect = measure > 0.5) %>% 
+    group_by(has_effect) %>% 
+    tally() %>% 
+    mutate(share = 100*n/sum(n)) %>% 
+    filter(has_effect== T) %>% 
+    pull(share)
+    
+  frequencyADE_table <- frequencyADE_table %>% 
+    mutate(share_affected = affected_frequency)
+  
+  # packaging and exporting
+  filename <- paste0("Tables/effect_sizes_and_tests_",table_name, ".png")
+  monetaryADE_table %>% 
+    bind_rows(frequencyADE_table) %>% 
+    tt(caption = paste0("Descriptive statiscts and tests, ", table_name)) %>% 
+    save_tt(filename, overwrite = T)
   
   ### PLOTTING ###
   
@@ -179,7 +214,7 @@ estimation_plot_and_tests <- function(model_run, original_data, file_name) {
 
 ## running plot and tests for each model.
 # model 1: all choices
-estimation_plot_and_tests(mod1,df,"Figure_5")
+estimation_plot_and_tests(mod1,df,"Figure_5","full_model")
 
 # model 2: no decoy choices
-estimation_plot_and_tests(mod2,df[df$HPCSchosen==0,],"Figure_6")
+estimation_plot_and_tests(mod2,df[df$HPCSchosen==0,],"Figure_6", "dropping_decoy_choices")
