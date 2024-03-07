@@ -38,30 +38,3 @@ source("Analysis/Figure_3.R")
 #### 5. Regression: table, plots & tests #####
 
 source("Analysis/Regressions.R")
-
-
-
-
-###shares of subjects subject to the different types of ADE
-#share of traditional ade
-ftable(cut(ade$ADE, breaks=c(-10000,0.5,10000)))/202
-#share of monetary ADE
-ftable(cut(mcoef$bias, breaks=c(-10000,0,10000)))/202
-###
-
-#################################################
-###### 2. lpcs vs. is only -- dropping dominated ######
-#################################################
-
-#bias different from 0
-biastest <- t.test(mcoef$bias)
-biastest$p.value
-adetest <- t.test(ade$ADE, mu=0.5)
-adetest$p.value
-
-###shares of subjects subject to the different types of ADE
-#share of traditional ade
-ftable(cut(ade$ADE, breaks=c(-10000,0.5,10000)))/164
-#share of monetary ADE
-ftable(cut(mcoef$bias, breaks=c(-10000,0,10000)))/202
-###
