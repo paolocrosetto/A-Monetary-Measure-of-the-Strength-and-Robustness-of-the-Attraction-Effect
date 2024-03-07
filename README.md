@@ -13,6 +13,10 @@ In particular, you can find
 -   the analysis scripts to generate the paper's results, in `/Analysis`
 -   the information needed to recreate the stimuli for replication, in `/Stimuli`
 
+## Running the analysis: howto
+
+To replicate the statistical analysis, head to the `Analysis` folder. Open the `Analysis.R` file. It has some dependencies (listed up front; install them if you need to) and it calls all the ancillary scripts to generate all the results. These are stored in the different `/Figures` and `/Tables` folders.
+
 ## Recreating the stimuli: howto
 
 The exact stimuli used in the original experiment hare provided in the `/Stimuli` folder. Subjects had to choose one item out of menus of 3 items and of 6 items (only the 3-menus are used in the Economics Letters paper). You get:
